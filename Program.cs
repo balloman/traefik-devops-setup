@@ -1,7 +1,7 @@
 ﻿using CliWrap;
 using CliWrap.Buffered;
 
-async void Start()
+async Task Start()
 {
     Console.WriteLine("Starting setup...");
     var dir = GetPathInput();
@@ -9,8 +9,16 @@ async void Start()
     var domain = GetDomainInput();
     Console.WriteLine($"Using domain: {domain}");
     (var username, var password) = GetUsernameAndPassword();
-    Console.WriteLine("Enter cert resolver email: ");
-    var email = Console.ReadLine();
+    string? email;
+    while (true)
+    {
+        Console.WriteLine("Enter cert resolver email: ");
+        email = Console.ReadLine();
+        if (email != null)
+        {
+            break;
+        }
+    }
     Console.WriteLine($"Using email: {email}");
     Console.WriteLine($"Using username: {username}");
     Console.WriteLine($"Using password: {password}");
@@ -20,6 +28,10 @@ async void Start()
     SetupDirectory(dir);
     Console.WriteLine("Directory setup complete.");
     Console.WriteLine("Replacing text in files...");
+    await ReplaceText(dir, hashedPassword, email, domain);
+    Console.WriteLine("Text replacement complete.");
+    Console.WriteLine("Setup complete!");
+    Console.WriteLine("Start up the service with 'docker-compose up' Once you have confirmed it is working, you can run it detached with 'docker-compose up -d'");
 }
 
 string GetPathInput()
@@ -112,20 +124,27 @@ void SetupDirectory(string basePath)
     Directory.CreateDirectory($"{basePath}/core");
     Console.WriteLine("Creating apps directory. This is where the configurations or volumes for individual applications may be stored if you wish");
     Directory.CreateDirectory($"{basePath}/apps");
-    Directory.CreateDirectory($"{basePath}/core/dynamic");
+    Console.WriteLine("Setting up dynamic directory. This is where the dynamic configuration files will be stored. An example one that ip whitelists has been created for you.");
+    Directory.CreateDirectory($"{basePath}/core/data/dynamic");
+    File.Copy("external/middlewares.yml", $"{basePath}/core/data/dynamic/middlewares.yml");
     File.Copy("external/docker-compose.yml", $"{basePath}/core/docker-compose.yml", true);
     File.Copy("external/traefik.yml", $"{basePath}/core/data/traefik.yml", true);
     File.Create($"{basePath}/core/data/acme.json");
     Cli.Wrap("chmod").WithArguments("600 " + $"{basePath}/core/data/acme.json").ExecuteBufferedAsync().Task.Wait();
 }
 
-async void ReplaceText(string basePath, string hashedPassword, string email, string domain)
+async Task ReplaceText(string basePath, string hashedPassword, string email, string domain)
 {
     var dockerComposePath = $"{basePath}/core/docker-compose.yml";
+    var traefikPath = $"{basePath}/core/data/traefik.yml";
     var composeText = await File.ReadAllLinesAsync(dockerComposePath);
     ReplaceLineInTextFile(composeText, "traefik.http.middlewares.traefik-auth.basicauth.users", $"      - \"traefik.http.middlewares.traefik-auth.basicauth.users={hashedPassword}\"");
-    File.WriteAllLines(dockerComposePath, composeText);
-    File.WriteAllText(dockerComposePath, File.ReadAllText(dockerComposePath).Replace("example.com", domain));
+    await File.WriteAllLinesAsync(dockerComposePath, composeText);
+    await File.WriteAllTextAsync(dockerComposePath, 
+        (await File.ReadAllTextAsync(dockerComposePath)).Replace("example.com", domain));
+    var traefikText = await File.ReadAllLinesAsync(traefikPath);
+    ReplaceLineInTextFile(traefikText, "email", $"      email: {email}");
+    await File.WriteAllLinesAsync(traefikPath, traefikText);
 }
 
 void ReplaceLineInTextFile(IList<string> fullText, string contains, string replaceWith, bool stopOnFirst=true)
@@ -138,4 +157,4 @@ void ReplaceLineInTextFile(IList<string> fullText, string contains, string repla
     }
 }
 
-Start();
+await Start();
