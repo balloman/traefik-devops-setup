@@ -5,3 +5,15 @@
         sourceRange:
           - "136.53.111.208/32"
           - "127.0.0.1/32"
+          - "66.42.83.147/32"
+          - "146.229.192.0/18"
+    https-redirect:
+      redirectScheme:
+        scheme: https
+        permanent: true
+    set-connection-header:
+      headers:
+        customRequestHeaders:
+          Connection: "keep-alive"
+        customResponseHeaders:
+          Connection: "keep-alive"
