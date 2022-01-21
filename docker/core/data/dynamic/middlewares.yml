@@ -1,7 +1,0 @@
-﻿http:
-  middlewares:
-    only-me-whitelist:
-      ipWhiteList:
-        sourceRange:
-          - "136.53.111.208/32"
-          - "127.0.0.1/32"
