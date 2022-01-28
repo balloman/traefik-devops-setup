@@ -19,3 +19,5 @@ sudo apt-get update; \
   sudo apt-get update && \
   sudo apt-get install -y dotnet-sdk-6.0
 sudo apt install apache2-utils
+sudo apt install docker-compose
+docker network create proxy
