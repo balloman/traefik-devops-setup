@@ -1,1 +1,2 @@
-Perhaps in the future, I could convert some of this to another language
+This is a script I developed for quickly setting up servers with traefik and portainer
+Run the pre-run setup first tho
